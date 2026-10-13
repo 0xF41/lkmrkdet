@@ -49,6 +49,8 @@
 | Client v0.3.0 native regression suite | Passed — all 80 Python tests and C decoder on the recovered VM |
 | Client v0.3.0 privileged baseline | Passed — 20261012T161114Z-74cbf01c |
 | Client v0.3.0 Singularity process and network retry | Passed for process/network — 20261012T161114Z-controlled-2a2be8f7; module-check miss preserved |
+| Client v0.3.1 grouped/colour output, local checks | Passed — 96 Python tests, one Linux-only skip, C decoder; real PTY and JSON/plain-output tests |
+| Client v0.3.1 native VM presentation checks | Passed — all 96 Python tests, no skips, C decoder, including real PTY and JSON tests |
 | AArch64 module compilation/runtime | Deferred to a future phase at user request |
 
 Do not promote an item to passed without its output. Keep compile tests and
@@ -522,6 +524,40 @@ passed as recorded below. Tests do not establish measured detection.
 The process improvement and network attribution are measured; doubly-unlinked
 module discovery is not fixed. Negative controls and recovery remain scoped
 guest observations, not independently trusted kernel attestation.
+
+## Client v0.3.1 presentation-only update
+
+- Add summary-first output grouped by processes, modules, network, filesystem,
+  system calls and tracing. Status labels use a restrained palette; secondary
+  evidence is dimmed, and original details remain available with `--verbose`.
+- `--color auto|always|never`; automatic mode checks the output terminal and
+  honours `NO_COLOR`/`TERM=dumb`. An explicit choice overrides automatic policy.
+  JSON is plain even with `--color always`, and exit-status semantics are unchanged.
+- Saved-report rendering explicitly identifies replay rather than a live scan.
+  Missing/partial comparison remains incomplete; status inventory is not a scan.
+- Local verification: **96 Python tests, one Linux-only skip, C decoder passed**.
+  New cases cover grouping, summary severity, preservation of original report
+  data, terminal control escaping, verbose evidence, JSON/error streams, and real
+  pseudo-terminal execution. The PTY capture retains a slave descriptor until
+  reading to avoid Darwin's last-slave-close discard behaviour.
+- Re-rendered negative control `20261012T161211Z-6970e68f` and Singularity case
+  `20261012T161114Z-controlled-2a2be8f7` retain their recorded client version and
+  original exit codes 0/1. README examples are labelled shortened recorded output;
+  detection counts and known module-check limitations are not changed.
+- The README's inode column is **Not tested** for all samples. File-hiding
+  behaviour does not establish inode cross-view detection. Diamorphine's reviewed
+  sample installs only getdents/getdents64/kill hooks and has no network-hiding
+  implementation; Caraxes's reviewed module hiding is disabled. Unknown or
+  unexercised features are not relabelled unsupported.
+- After SSH access returned, client v0.3.1 and its output regression tests were
+  deployed to the Ubuntu VM. Native `make test` passed: **all 96 Python tests, no
+  skips, C decoder**, including real pseudo-terminal colour policy and JSON tests.
+- No kernel or detector logic change, and no new live rootkit experiment is
+  claimed for this presentation update. Earlier detection evidence remains
+  versioned separately. The local technical wiki draft is outside the repository.
+- README rootkit names link to the original upstream projects, verified against
+  checkout remotes and upstream documentation. Separate wikis are disabled for
+  Diamorphine/Singularity; the Caraxes wiki route redirects to its project README.
 
 ## Runtime sequence
 

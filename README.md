@@ -59,6 +59,104 @@ Scan exit codes: **0** = checks completed without suspicious findings;
 
 Treat `ERROR` and `UNSUPPORTED` as missing coverage, not a clean result.
 
+## Tested rootkits
+
+Results below are from the reviewed sample versions on Ubuntu 24.04,
+kernel `6.8.0-146-generic`. A result applies to the tested configuration, not every
+version of that rootkit.
+
+| Rootkit | Hidden Inodes | Hidden Processes | Hidden Network Connections | Hidden Module |
+| --- | --- | --- | --- | --- |
+| [Caraxes](https://github.com/ait-aecid/caraxes) | Not tested | **Detected** | Not tested | Disabled in tested configuration |
+| [Diamorphine](https://github.com/m0nad/Diamorphine) | Not tested | Not exercised | Not supported by tested sample | **Detected** |
+| [Singularity](https://github.com/MatheuZSecurity/Singularity) | Not tested | **Detected** | **Detected — TCP IPv4** | **Missed** |
+
+- **Detected:** the demonstrated hiding produced a matching detector finding.
+- **Missed:** hiding was demonstrated, but the corresponding check did not find it.
+- **Not tested / Not exercised:** no detection claim. Diamorphine's file/process
+  hiding was not observed on this kernel, even though the sample implements it.
+- File hiding was confirmed for Caraxes and Singularity, but **inode-level
+  detection was not tested**. Filesystem callback checks are not an inode scan.
+
+Singularity removes both module registrations, which evades the module check;
+its process and network findings still expose suspicious activity. Sample
+revisions and evidence are recorded in [the validation ledger](docs/VALIDATION.md).
+Each rootkit name links to its original project documentation.
+
+## Example output
+
+The CLI groups findings by check and puts the summary first. In a terminal,
+headings are cyan, `OK` is green, suspicious findings are red, and failed or
+unavailable checks are amber. Addresses and supporting details are muted.
+
+These plain-text examples are excerpts of recorded lab scans rendered by the new
+CLI. The versions shown are those recorded in each report; PIDs, addresses and
+timings vary between runs. Saved reports are explicitly labelled as replays.
+
+### Clean test VM
+
+```text
+lkmrkdet
+Kernel module 0.2.1 | Client 0.3.0
+6.8.0-146-generic | x86_64
+Saved report - not a live scan
+
+NO SUSPICIOUS FINDINGS
+0 suspicious | 28 OK | 0 errors | 0 unsupported | 4 info
+Inspection complete | Exit code: 0
+Kernel collection: 0.33 ms | Observed LIVE modules: 101
+
+PROCESSES
+  [OK] 1 observation without an anomaly
+  [INFO] task snapshot - Kernel task snapshot collected
+
+MODULES
+  [OK] 1 observation without an anomaly
+
+NETWORK
+  [OK] 4 observations without an anomaly
+  [INFO] coverage - Proc network reporting callbacks only
+
+... remaining check groups omitted ...
+```
+
+This is a negative-control result, not a guarantee of kernel integrity.
+
+### Rootkit-present test VM — Singularity
+
+```text
+lkmrkdet
+Kernel module 0.2.1 | Client 0.3.0
+6.8.0-146-generic | x86_64
+Saved report - not a live scan
+
+SUSPICIOUS EVIDENCE FOUND
+26 suspicious | 26 OK | 0 errors | 0 unsupported | 4 info
+Inspection complete | Exit code: 1
+Kernel collection: 0.36 ms | Observed LIVE modules: 101
+
+PROCESSES
+  [INFO] task snapshot - Kernel task snapshot collected
+  [SUSPICIOUS] PID 3388 - Missing from proc enumeration
+    A later kernel snapshot matches the PID and birth identity; direct proc lookup is
+    unavailable.
+
+MODULES
+  [OK] 1 observation without an anomaly
+
+NETWORK
+  [SUSPICIOUS] /proc/net/tcp - Function-entry CALL
+    Entry CALL matches a stable IPMODIFY tracing trampoline.
+    Address: 0xffffffffc0c39000 | Owner: unresolved
+    Tracefs callback: 0xffffffffc0b888b0 | Flags: RIM
+
+... remaining findings omitted ...
+```
+
+The consistent module views illustrate the known module-check miss. The other
+findings detect evidence despite it. Counts are observations, not a count of
+independent rootkits.
+
 ## Useful commands
 
 Check the loaded detector:
@@ -71,6 +169,15 @@ Show all scan details:
 
 ```bash
 sudo python3 client.py scan --verbose
+```
+
+Colour is automatic for terminals and disabled for redirected output. Use
+`--color always` to force it or `--color never` to disable it. Automatic mode also
+respects `NO_COLOR` and `TERM=dumb`; an explicit choice overrides them. JSON output
+always stays plain.
+
+```bash
+sudo python3 client.py scan --color never
 ```
 
 Check only processes:
