@@ -189,18 +189,19 @@ Results below are from the reviewed sample versions on Ubuntu 24.04,
 kernel `6.8.0-146-generic`. A result applies to the tested configuration, not every
 version of that rootkit.
 
-| Rootkit | Hidden Inodes | Hidden Processes | Hidden Network Connections | Hidden Module |
+| Rootkit | Hidden Files/Directories | Hidden Processes | Hidden Network Connections | Hidden Module |
 | --- | --- | --- | --- | --- |
-| [Caraxes](https://github.com/ait-aecid/caraxes) | Not tested | **Detected** | Not tested | Disabled in tested configuration |
-| [Diamorphine](https://github.com/m0nad/Diamorphine) | Not tested | Not exercised | Not supported by tested sample | **Detected** |
-| [Singularity](https://github.com/MatheuZSecurity/Singularity) | Not tested | **Detected** | **Detected — TCP IPv4** | **Missed** |
+| [Caraxes](https://github.com/ait-aecid/caraxes) | File hiding confirmed | **Detected** | Not tested | Disabled in tested configuration |
+| [Diamorphine](https://github.com/m0nad/Diamorphine) | Not exercised | Not exercised | Not supported by tested sample | **Detected** |
+| [Singularity](https://github.com/MatheuZSecurity/Singularity) | File hiding confirmed | **Detected** | **Detected — TCP IPv4** | **Missed** |
 
 - **Detected:** the demonstrated hiding produced a matching detector finding.
 - **Missed:** hiding was demonstrated, but the corresponding check did not find it.
 - **Not tested / Not exercised:** no detection claim. Diamorphine's file/process
   hiding was not observed on this kernel, even though the sample implements it.
-- File hiding was confirmed for Caraxes and Singularity, but **inode-level
-  detection was not tested**. Filesystem callback checks are not an inode scan.
+- **File hiding confirmed:** known test files disappeared from directory listings
+  while remaining accessible. This confirms hiding behaviour, not a separately
+  scored file-detection result. Dedicated directory-hiding tests were not run.
 
 Singularity removes both module registrations, which evades the module check;
 its process and network findings still expose suspicious activity. Sample
