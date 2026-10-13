@@ -51,6 +51,12 @@
 | Client v0.3.0 Singularity process and network retry | Passed for process/network — 20261012T161114Z-controlled-2a2be8f7; module-check miss preserved |
 | Client v0.3.1 grouped/colour output, local checks | Passed — 96 Python tests, one Linux-only skip, C decoder; real PTY and JSON/plain-output tests |
 | Client v0.3.1 native VM presentation checks | Passed — all 96 Python tests, no skips, C decoder, including real PTY and JSON tests |
+| Dedicated directory runner local checks | Passed — final 120 Python tests, one Linux-only skip, C decoder; no sample loaded |
+| Dedicated directory runner native checks/preflights | Passed — final 120 Python tests, C decoder, three read-only sample preflights |
+| Dedicated Caraxes directory case | Verified — 20261013T040600Z-controlled-1e5acc5a; GID directory hidden, matching hook evidence, recovery pass |
+| Dedicated Diamorphine directory case | Verified — 20261013T042409Z-controlled-cc6ae964; hiding unobserved, table/module anomalies detected |
+| Dedicated Singularity directory case | Verified — 20261013T043003Z-controlled-797c0148; hiding confirmed, chdir ENOENT, matching hook evidence |
+| Directory series final reboot recovery | Passed — 20261013T043051Z-5e30d678, new boot, clean full/interface scans |
 | AArch64 module compilation/runtime | Deferred to a future phase at user request |
 
 Do not promote an item to passed without its output. Keep compile tests and
@@ -559,6 +565,135 @@ guest observations, not independently trusted kernel attestation.
   checkout remotes and upstream documentation. Separate wikis are disabled for
   Diamorphine/Singularity; the Caraxes wiki route redirects to its project README.
 
+## Prepared dedicated directory cases
+
+`scripts/validate_directories.py` adds name-selected canaries for all three
+reviewed samples, UID-only/GID-only directory canaries for Caraxes and an ordinary
+control. Baseline and bracketing observations compare parent pathname/held-FD
+enumeration, direct open, a child-process chdir probe, held directory/marker
+identity and content, and relative child access. The manager's cwd is unchanged.
+
+Tests verify identity/control failures, mixed enumeration, blocked direct access,
+independent ownership/name scoring, incomplete scans, unrelated alerts, no hiding,
+baseline abort, failed initialization, active/recovery failure, marker-before-load
+ordering and non-recursive cleanup. Local regression: 119 Python tests with one
+Linux-only skip and C decoder passed. Native VM regression: all 119 Python tests,
+no skips, and C decoder passed. No sample is loaded by unit tests.
+
+Read-only preflights for Caraxes, Diamorphine and Singularity pass on
+`6.8.0-146-generic`, boot `b49115f3-457d-4489-97ba-9df7ef923c1f`, at
+`2026-10-13T03:59:53Z`, with unchanged reviewed sample/module identities. This boot
+has prior detector exposure; new privileged sample cases require separate fresh
+boots. Subsequent configuration-specific directory cases are recorded below.
+
+The case explicitly reports directory-hiding behaviour separately from matching
+getdents/ftrace hook evidence. Directory-object detection remains unimplemented;
+the fixture oracle is not supplied to the production detector. Caraxes recovery
+must restore every directory's visibility/access. All attempted sample loads,
+including Caraxes, mark the boot for reboot before the next sample. See
+`DIRECTORY_TESTS.md` for commands and interpretation.
+
+Final publication review adds one cleanup-retry regression: a failed deletion
+followed by closed owned descriptors must defer work rather than interpret a
+relative name in the manager's cwd. No successful-case behaviour or detector
+logic changes. Final checks pass locally (120 tests, one Linux-only skip) and on
+the VM (all 120 tests, no skips), with C decoder passed. Earlier 119-test counts
+below describe the runner validation at those measured experiments.
+
+### Caraxes: 20261013T040600Z-controlled-1e5acc5a
+
+- Fresh boot ID `f930f014-67d1-427e-8cbc-21ddbc477baf`, initial taint 0, collector
+  58.31 seconds after boot. Reviewed Caraxes binary SHA-256
+  `0adf762c73360258cabda0f1eeb592612bde62dc08a83c863977e286c12f47dc`,
+  srcversion `92BABC7A3EFE68C5CCA5843`; unchanged kernel v0.2.1/client v0.3.1.
+- UID-only and GID-only fixture ownership is recorded as 1001/0 and 0/21. Name
+  and ordinary control directories are 0/0.
+- GID-selected directory device/inode `2050/272`, marker `2050/273`: absent from
+  both parent views in both active observations, held identity/content intact,
+  direct open/chdir and relative marker access succeed. Directory hiding confirmed.
+- Name directory and UID directory remain visible in both parent listings,
+  identity-stable and accessible: not observed/unexercised for parent hiding.
+- Marker enumeration inside UID/GID directories is false during activation while
+  held/relative reads succeed; it returns on unload. Repeatability in a benign
+  fixture is tested to avoid mistaking a retained-FD iterator offset for hiding.
+  No cause for the sample's differing selector behaviour is asserted.
+- Enumeration evidence: one native handler-entry CALL plus one stable IPMODIFY
+  registration for getdents64, callback attributed to Caraxes, flags RIM.
+  Active scan **27 OK, 2 SUSPICIOUS, 4 INFO**, exit 1, complete collection.
+- Before/restored scans **28 OK, 4 INFO**, exit 0. Every directory/marker view and
+  access check restores after sample unload; control intact; cleanup succeeds;
+  experiment exit 0. Object-specific directory detection remains unimplemented.
+- The log delta adds expected signing/taint, detector lifecycle and sample
+  hook-installation messages only. No new kernel fault diagnostic observed.
+- Report retrieved locally; current-boot marker still requires reboot before
+  further samples. Control-marker visibility is now required by the directory
+  baseline/control rule; original recorded control meets that condition. Updated
+  native tests pass all 119 tests plus C decoder. Further cases follow below.
+
+### Diamorphine: 20261013T042409Z-controlled-cc6ae964
+
+- Fresh boot `e15dd3e2-d8b7-4718-894d-3173bdf67b5c`, boot UTC
+  `2026-10-13T04:19:33Z`, collection 276.18 seconds after boot, initial taint 0.
+  Reviewed sample commit and SHA/srcversion match the earlier inventory;
+  kernel v0.2.1/client v0.3.1 unchanged.
+- The name-selected directory and ordinary control remain visible in both parent
+  views in both active observations. Held directory/marker identity/content,
+  direct open, relative marker read/listing and child chdir all succeed.
+- `directory_hiding=NOT_OBSERVED`, `enumeration_hook_evidence=NOT_EXERCISED`.
+  Getdents/getdents64 table-pointer anomalies are preserved, not counted as
+  evidence of a demonstrated directory-hiding effect.
+- Active scan **24 OK, 4 SUSPICIOUS, 4 INFO**, exit 1, no errors/unsupported.
+  Findings are the LIVE kobject/list discrepancy and three altered table pointers
+  (getdents, getdents64, kill) attributed to `diamorphine (unlisted)`. Native
+  handler observations remain unchanged; table metadata coverage caveat applies.
+- Baseline scan exit 0; fixture cleanup and detector unload succeed. Experiment
+  exit 2 is the unexercised case classification, not collection failure or miss.
+  Sample removal is not attempted; current boot remains marked for reboot.
+- Exact log delta adds expected signing/taint, detector lifecycle and one unrelated
+  UFW line. No new kernel fault diagnostic observed. Report retrieved locally;
+  subsequent post-reboot recovery and Singularity directory test follow below.
+
+### Singularity: 20261013T043003Z-controlled-797c0148
+
+- Pre-case recovery `20261013T043003Z-50a90b4f`: fresh boot
+  `9b6e5c1d-ef5e-4de5-95e7-a4a259fd2620`, initial taint 0, `--expect-clean`.
+  All commands including standalone interface smoke exit 0; full scan
+  **28 OK, 4 INFO, no suspicious/incomplete checks**.
+- Directory case runs immediately afterward on the same boot, matching reviewed
+  Singularity commit/binary hashes and unchanged kernel v0.2.1, client v0.3.1.
+- Target directory `2050/378`, marker `2050/379`: absent from both parent views in
+  both active observations, held/relative identity/content stable; marker listing
+  via held directory succeeds. Directory enumeration hiding **CONFIRMED**.
+- Direct open succeeds with the same directory identity. Child chdir fails
+  ENOENT (2) on both observations. These facts are recorded without assuming all
+  direct access paths are blocked. Ordinary control `2050/380`, marker `2050/381`,
+  remains visible and accessible with stable identity/content and successful chdir.
+- Enumeration evidence: native getdents/getdents64 CALLs and their stable IPMODIFY
+  registrations, callback numeric `0xffffffffc0c4c8b0`, flags RIM. No module owner
+  name is guessed after concealment. The controlled enumeration-hook field is
+  **DETECTED**; object-level directory detection remains unimplemented.
+- Active full scan **27 OK, 25 SUSPICIOUS, 4 INFO**, exit 1, complete, no errors or
+  unsupported checks. No process-hiding trigger or network listener is used in
+  this directory-only experiment. Experiment exit 0; cleanup errors empty;
+  detector unload succeeds, sample left for reboot. Module-concealment coverage
+  is not scored by this narrower experiment.
+- The saved after-log loses earlier audit and signing/taint lines; detector
+  lifecycle lines remain. Do not claim an unfiltered fault-free active interval.
+
+### Final directory-series recovery: 20261013T043051Z-5e30d678
+
+- New boot `000fdb32-8bb3-4acb-8cce-7273da234771`, boot UTC
+  `2026-10-13T04:30:33Z`, capture 17.94 seconds after boot with taint 0.
+- All status/full scan/interface/unload/log commands exit 0; **28 OK, 4 INFO**,
+  no suspicious or incomplete checks. Detector endpoint absent afterward.
+- Both pre-Singularity and final recovery exact log deltas contain the four
+  expected signing/taint and detector lifecycle lines only; no new kernel fault
+  diagnostic observed in either negative-control interval.
+- All saved report sets retrieved after reboot; raw working artifacts remain
+  outside the source publication. Caraxes/Diamorphine/Singularity directory
+  behaviours are now measured individually; no universal hiding/detection claim
+  or independent kernel-integrity attestation follows from these results.
+
 ## Runtime sequence
 
 1. Revert to a clean lab snapshot and record kernel and sample revisions.
@@ -588,6 +723,9 @@ guest observations, not independently trusted kernel attestation.
 | Singularity 87875157... | 6.8.0-146 x86-64 | PID enumeration and lookup hiding | PID 3388 birth identity persists in later kernel snapshot; fixture IPC agrees | processes (client v0.3.0) | Detected | Exact-PID finding; production rule uses no fixture oracle |
 | Singularity 87875157... | 6.8.0-146 x86-64 | TCP IPv4 reporting hiding | Port 8081 listener active, inode retained, absent proc reporting; control visible | network/ftrace (client v0.3.0) | Detected/correlated | Exact entry CALL/trampoline correlation; owner remains unknown |
 | Singularity 87875157... | 6.8.0-146 x86-64 | Both module registrations removed | Known load, both reported views absent | modules (kernel v0.2.1) | Missed | Consistent removal evades the two-view rule; hook/PID evidence remains |
+| Caraxes 899e8be... | 6.8.0-146 x86-64 | GID-selected directory hiding | Both parent views omit it; held objects/direct open/chdir intact | directory case / enumeration hooks | Behaviour confirmed; hook evidence detected | Name/UID parent hiding not observed; recovery succeeds |
+| Diamorphine af494fad... | 6.8.0-146 x86-64 | Prefix directory hiding requested | Both listing views and all access retain the directory | directory case | Not exercised | Table mutations observed, live hiding not demonstrated |
+| Singularity 87875157... | 6.8.0-146 x86-64 | Named directory hiding and access filtering | Both parent views omit it; held/relative/direct open intact; chdir ENOENT | directory case / enumeration hooks | Behaviour confirmed; hook evidence detected | Numeric callback owner preserved; clean reboot recovery |
 
 Required categories include missing module registration, directory filtering,
 process enumeration filtering, proc network reporting, and inline/ftrace

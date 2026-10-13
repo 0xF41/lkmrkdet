@@ -18,7 +18,7 @@ class StandaloneEntrypoints(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             for path in ['client.py', 'tests/runtime_smoke.py', 'scripts/validate_vm.py',
                          'scripts/validate_caraxes.py', 'scripts/validate_samples.py',
-                         'scripts/canary_worker.py']:
+                         'scripts/canary_worker.py', 'scripts/validate_directories.py']:
                 with self.subTest(path=path):
                     completed = subprocess.run([sys.executable, str(ROOT / path), '--help'],
                                                cwd=directory, env=env, capture_output=True,

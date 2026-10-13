@@ -191,17 +191,22 @@ version of that rootkit.
 
 | Rootkit | Hidden Files/Directories | Hidden Processes | Hidden Network Connections | Hidden Module |
 | --- | --- | --- | --- | --- |
-| [Caraxes](https://github.com/ait-aecid/caraxes) | File hiding confirmed | **Detected** | Not tested | Disabled in tested configuration |
+| [Caraxes](https://github.com/ait-aecid/caraxes) | File and GID-selected directory hiding confirmed | **Detected** | Not tested | Disabled in tested configuration |
 | [Diamorphine](https://github.com/m0nad/Diamorphine) | Not exercised | Not exercised | Not supported by tested sample | **Detected** |
-| [Singularity](https://github.com/MatheuZSecurity/Singularity) | File hiding confirmed | **Detected** | **Detected — TCP IPv4** | **Missed** |
+| [Singularity](https://github.com/MatheuZSecurity/Singularity) | File and directory hiding confirmed | **Detected** | **Detected — TCP IPv4** | **Missed** |
 
 - **Detected:** the demonstrated hiding produced a matching detector finding.
 - **Missed:** hiding was demonstrated, but the corresponding check did not find it.
 - **Not tested / Not exercised:** no detection claim. Diamorphine's file/process
   hiding was not observed on this kernel, even though the sample implements it.
-- **File hiding confirmed:** known test files disappeared from directory listings
-  while remaining accessible. This confirms hiding behaviour, not a separately
-  scored file-detection result. Dedicated directory-hiding tests were not run.
+- **Hiding confirmed:** known files or directories disappeared from listings
+  while retained access proved their identity and contents. This confirms hiding
+  behaviour, not a separately scored file/directory-object detection result.
+  Caraxes hid the GID-selected directory in the dedicated test; its name- and
+  UID-selected directories stayed visible. Diamorphine's directory stayed visible.
+  Singularity hid the named directory from listings and blocked `chdir`, while
+  direct open and retained access still worked. See the
+  [dedicated directory results](docs/DIRECTORY_TESTS.md) for the measured cases.
 
 Singularity removes both module registrations, which evades the module check;
 its process and network findings still expose suspicious activity. Sample
