@@ -4,8 +4,7 @@ A Linux kernel rootkit detection tool that helps spot hidden processes and
 suspicious changes in the kernel. It uses a kernel module and a Python
 command-line client.
 
-Developed for **When Linux Lies — STANDCON**. Tested on Ubuntu 24.04,
-x86-64, kernel `6.8.0-146-generic`.
+Tested on Ubuntu 24.04, x86-64, kernel `6.8.0-146-generic`.
 
 This is an experimental tool. Start with a test VM. A suspicious result needs
 investigation; a scan with no findings does not guarantee a clean system.
