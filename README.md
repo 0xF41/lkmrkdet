@@ -6,9 +6,6 @@ command-line client.
 
 Tested on Ubuntu 24.04, x86-64, kernel `6.8.0-146-generic`.
 
-This is an experimental tool. Start with a test VM. A suspicious result needs
-investigation; a scan with no findings does not guarantee a clean system.
-
 ## Quick start
 
 ### 1. Download and build
