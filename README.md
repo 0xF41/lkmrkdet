@@ -39,6 +39,21 @@ reporting, system-call handlers, and tracing hooks.
 sudo rmmod lkmrkdet
 ```
 
+## What each check compares
+
+| Check | Comparison |
+| --- | --- |
+| Processes | Kernel task snapshot ↔ `/proc` enumeration, with process-identity validation |
+| Modules | Kernel module list ↔ typed module kobjects |
+| Network | Observed reporting callback and handler-entry evidence ↔ expected handler and available tracing evidence |
+| Filesystem | Selected directory-iteration callback ↔ expected handler |
+| Syscalls | Selected table pointer and handler entry ↔ expected symbol and recognised instruction patterns |
+| Tracing | Entry CALL ↔ stable tracing registration with an exactly matching trampoline address |
+
+Tracing checks also flag selected active `IPMODIFY` registrations independently
+of entry-CALL correlation. These comparisons identify evidence for investigation;
+they do not establish whole-kernel integrity.
+
 ## Understand the results
 
 | Result | Meaning |
