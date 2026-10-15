@@ -185,16 +185,20 @@ Results below are from the reviewed sample versions on Ubuntu 24.04,
 kernel `6.8.0-146-generic`. A result applies to the tested configuration, not every
 version of that rootkit.
 
-| Rootkit | Hidden Files/Directories | Hidden Processes | Hidden Network Connections | Hidden Module |
-| --- | --- | --- | --- | --- |
-| [Caraxes](https://github.com/ait-aecid/caraxes) | File and GID-selected directory hiding confirmed | **Detected** | Not tested | Disabled in tested configuration |
-| [Diamorphine](https://github.com/m0nad/Diamorphine) | Not exercised | Not exercised | Not supported by tested sample | **Detected** |
-| [Singularity](https://github.com/MatheuZSecurity/Singularity) | File and directory hiding confirmed | **Detected** | **Detected — TCP IPv4** | **Missed** |
+| Sample | Controlled behaviour observed | `lkmrkdet` evidence | Important limitation |
+| --- | --- | --- | --- |
+| [Caraxes](https://github.com/ait-aecid/caraxes) | Process and filesystem enumeration hiding | Hidden-PID candidate; enumeration-handler and tracing findings | Module hiding disabled in tested configuration |
+| [Diamorphine](https://github.com/m0nad/Diamorphine) | Module-list concealment; syscall-table changes | Module registration discrepancy; three table-pointer mismatches | File/process hiding not observed in tested environment |
+| [Singularity](https://github.com/MatheuZSecurity/Singularity) | Process, filesystem, and TCP IPv4 reporting hiding | Hidden-PID candidate; network and enumeration-hook evidence | Module registration comparison missed the concealed module |
 
-- **Detected:** the demonstrated hiding produced a matching detector finding.
-- **Missed:** hiding was demonstrated, but the corresponding check did not find it.
-- **Not tested / Not exercised:** no detection claim. Diamorphine's file/process
-  hiding was not observed on this kernel, even though the sample implements it.
+- **Hook evidence versus object discovery:** network and enumeration findings
+  identify suspicious reporting paths, not independently discovered hidden
+  connections or filenames. Controlled fixtures establish the hiding behaviour.
+- **Module-check miss:** Singularity's module hiding was demonstrated, but the
+  module registration comparison did not find it.
+- **Unobserved behaviour:** Diamorphine's file/process hiding was not observed on
+  this kernel, even though the sample implements it. Its table-pointer mismatches
+  establish tampering, not successful live syscall interception.
 - **Hiding confirmed:** known files or directories disappeared from listings
   while retained access proved their identity and contents. This confirms hiding
   behaviour, not a separately scored file/directory-object detection result.
