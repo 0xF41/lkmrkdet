@@ -17,3 +17,7 @@ __pycache__/
 /reports/
 /tests/
 /working-docs/
+
+# Keep build configuration tracked; lab and demo scripts remain local.
+/scripts/*
+!/scripts/configure.py
