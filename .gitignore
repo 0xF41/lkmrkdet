@@ -15,3 +15,5 @@ __pycache__/
 .venv/
 .DS_Store
 /reports/
+/tests/
+/working-docs/

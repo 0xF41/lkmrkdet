@@ -220,12 +220,10 @@ version of that rootkit.
   Caraxes hid the GID-selected directory in the dedicated test; its name- and
   UID-selected directories stayed visible. Diamorphine's directory stayed visible.
   Singularity hid the named directory from listings and blocked `chdir`, while
-  direct open and retained access still worked. See the
-  [dedicated directory results](docs/DIRECTORY_TESTS.md) for the measured cases.
+  direct open and retained access still worked.
 
 Singularity removes both module registrations, which evades the module check;
-its process and network findings still expose suspicious activity. Sample
-revisions and evidence are recorded in [the validation ledger](docs/VALIDATION.md).
+its process and network findings still expose suspicious activity.
 Each rootkit name links to its original project documentation.
 
 ## License
