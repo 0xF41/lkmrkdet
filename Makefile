@@ -1,6 +1,8 @@
 ifneq ($(KERNELRELEASE),)
 obj-m := lkmrkdet.o
-ccflags-y += -I$(src) -Wall
+lkmrkdet-y := src/main.o src/core.o src/modules.o src/filesystem.o \
+	src/network.o src/syscalls.o src/processes.o src/ftrace.o
+ccflags-y += -I$(src) -I$(src)/include -Wall
 else
 KDIR ?= /lib/modules/$(shell uname -r)/build
 PYTHON ?= python3
