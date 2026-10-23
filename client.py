@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from lkmrkdet_client import (cli, endpoint, process_compare, render, reporting,
                              trace_evidence)  # noqa: F401
-from lkmrkdet_client.cli import main
+from lkmrkdet_client.cli import checks_argument, main
 from lkmrkdet_client.endpoint import read_report, request
 from lkmrkdet_client.process_compare import (enumerate_pids, namespace_id,
                                              parse_stat_start, process_findings)
@@ -16,8 +16,18 @@ from lkmrkdet_client.render import (CHECK_TITLES, CODE_LABELS, COLORS, STATUS_ST
                                     color_enabled, display, safe_text, styled)
 from lkmrkdet_client.reporting import (CHECKS, CLIENT_VERSION, MAX_RECORDS, REPORT_LIMIT,
                                        SAVED_REPORT_LIMIT, STATUSES, add_records,
-                                       checks_argument, exit_status, result,
+                                       exit_status, parse_checks, result,
                                        validate_report)
+
+__all__ = [
+    'CHECKS', 'CHECK_TITLES', 'CLIENT_VERSION', 'CODE_LABELS', 'COLORS',
+    'MAX_RECORDS', 'REPORT_LIMIT', 'SAVED_REPORT_LIMIT', 'STATUS_STYLES',
+    'STATUSES', 'add_records', 'checks_argument', 'color_enabled', 'display',
+    'endpoint', 'enumerate_pids', 'exit_status', 'main', 'namespace_id',
+    'parse_checks', 'parse_stat_start', 'process_compare', 'process_findings',
+    'read_report', 'render', 'reporting', 'request', 'result', 'safe_text',
+    'styled', 'trace_evidence', 'validate_report',
+]
 
 
 if __name__ == '__main__':

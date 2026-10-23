@@ -10,6 +10,13 @@ static const char * const rk_status_names[] = {
 	[RK_INFO] = "INFO"
 };
 
+static void rk_store(struct rk_session *s, char *dst, size_t size,
+		const char *src)
+{
+	if (strscpy(dst, src, size) < 0)
+		s->truncated = true;
+}
+
 struct rk_record *rk_record(struct rk_session *s, const char *check,
 		const char *target, enum rk_status status, const char *code,
 		const char *detail)
@@ -21,10 +28,10 @@ struct rk_record *rk_record(struct rk_session *s, const char *check,
 	}
 	r = &s->records[s->nr_records++];
 	memset(r, 0, sizeof(*r));
-	strscpy(r->check, check, sizeof(r->check));
-	strscpy(r->target, target, sizeof(r->target));
-	strscpy(r->code, code, sizeof(r->code));
-	strscpy(r->detail, detail, sizeof(r->detail));
+	rk_store(s, r->check, sizeof(r->check), check);
+	rk_store(s, r->target, sizeof(r->target), target);
+	rk_store(s, r->code, sizeof(r->code), code);
+	rk_store(s, r->detail, sizeof(r->detail), detail);
 	r->status = status;
 	return r;
 }

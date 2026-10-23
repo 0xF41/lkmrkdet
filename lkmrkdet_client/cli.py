@@ -8,8 +8,15 @@ import sys
 
 from .endpoint import request
 from .render import color_enabled, display, styled
-from .reporting import (CLIENT_VERSION, SAVED_REPORT_LIMIT, checks_argument,
-                        exit_status, validate_report)
+from .reporting import (CLIENT_VERSION, SAVED_REPORT_LIMIT, exit_status,
+                        parse_checks, validate_report)
+
+
+def checks_argument(value):
+    try:
+        return parse_checks(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc))
 
 
 def main(argv=None):

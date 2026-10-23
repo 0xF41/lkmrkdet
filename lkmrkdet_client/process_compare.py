@@ -32,16 +32,7 @@ def parse_stat_start(text):
     return int(fields[19])  # field 22, with rest beginning at field 3
 
 
-def process_findings(report, before, after, read_start, hz, revalidate=None):
-    """Require direct identity or later matching kernel birth identity, not kill(0).
-
-    Revalidation is a fresh process-only transaction AFTER failed direct lookups.
-    It distinguishes persistent task/proc discrepancies from exit/reuse; neither
-    kernel snapshot is an independent trust source.
-    """
-    if not report['tasks_complete']:
-        return [result('processes', 'cross-view', 'UNSUPPORTED', 'snapshot_incomplete',
-                       'No complete kernel task snapshot; proc comparison not performed.')]
+def _direct_findings(report, before, after, read_start, hz):
     findings = []
     pending = []
     compared = 0
@@ -69,40 +60,59 @@ def process_findings(report, before, after, read_start, hz, revalidate=None):
                          f'Kernel snapshot contains {task["comm"]!r}; direct proc lookup matches its start time, but both numeric enumerations omit it.')
         finding['identity_source'] = 'direct_proc_stat'
         findings.append(finding)
+    return findings, pending, compared
+
+
+def _revalidate_findings(pending, findings, report, revalidate):
+    try:
+        confirmation = validate_report(revalidate())
+        if (not confirmation['scanned'] or confirmation['checks'] != CHECKS['processes'] or
+                any(confirmation[key] != report[key] for key in ['kernel', 'arch', 'version']) or
+                confirmation['pid_ns'] != report['pid_ns'] or not confirmation['tasks_complete'] or
+                confirmation['truncated'] or confirmation['started_ns'] <= report['finished_ns'] or
+                confirmation['finished_ns'] < confirmation['started_ns'] or
+                not any(r['check'] == 'processes' for r in confirmation['records']) or
+                any(r['check'] == 'processes' and r['status'] in {'ERROR', 'UNSUPPORTED'}
+                    for r in confirmation['records'])):
+            raise ValueError('Process revalidation is incomplete, stale or namespace-mismatched')
+        confirmed_tasks = {task['pid']: task for task in confirmation['tasks']}
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        for task, index in pending:
+            findings[index] = result('processes', task['pid'], 'ERROR', 'revalidation_unavailable', str(exc))
+    else:
+        for task, index in pending:
+            confirmed = confirmed_tasks.get(task['pid'])
+            if confirmed is None:
+                findings[index]['detail'] += ' The later kernel snapshot also lacks this task; exit remains inconclusive.'
+            elif confirmed['start_ns'] != task['start_ns']:
+                findings[index] = result('processes', task['pid'], 'INFO', 'identity_changed',
+                                         'Later kernel snapshot has a different birth time; PID reuse prevents attribution.')
+            else:
+                finding = result('processes', task['pid'], 'SUSPICIOUS', 'missing_from_proc_enumeration',
+                                 'Both proc enumerations omit this PID and direct lookup is unavailable, but a later kernel '
+                                 'snapshot retains the same PID, namespace and nanosecond birth identity. '
+                                 'This is corroborated same-kernel evidence, not independent attestation.')
+                finding.update(identity_source='kernel_task_revalidation',
+                               revalidation={'started_ns': confirmation['started_ns'],
+                                             'finished_ns': confirmation['finished_ns'],
+                                             'pid_ns': confirmation['pid_ns'], 'start_ns': confirmed['start_ns']})
+                findings[index] = finding
+    return findings
+
+
+def process_findings(report, before, after, read_start, hz, revalidate=None):
+    """Require direct identity or later matching kernel birth identity, not kill(0).
+
+    Revalidation is a fresh process-only transaction AFTER failed direct lookups.
+    It distinguishes persistent task/proc discrepancies from exit/reuse; neither
+    kernel snapshot is an independent trust source.
+    """
+    if not report['tasks_complete']:
+        return [result('processes', 'cross-view', 'UNSUPPORTED', 'snapshot_incomplete',
+                       'No complete kernel task snapshot; proc comparison not performed.')]
+    findings, pending, compared = _direct_findings(report, before, after, read_start, hz)
     if pending and revalidate is not None:
-        try:
-            confirmation = validate_report(revalidate())
-            if (not confirmation['scanned'] or confirmation['checks'] != CHECKS['processes'] or
-                    any(confirmation[key] != report[key] for key in ['kernel', 'arch', 'version']) or
-                    confirmation['pid_ns'] != report['pid_ns'] or not confirmation['tasks_complete'] or
-                    confirmation['truncated'] or confirmation['started_ns'] <= report['finished_ns'] or
-                    confirmation['finished_ns'] < confirmation['started_ns'] or
-                    not any(r['check'] == 'processes' for r in confirmation['records']) or
-                    any(r['check'] == 'processes' and r['status'] in {'ERROR', 'UNSUPPORTED'}
-                        for r in confirmation['records'])):
-                raise ValueError('Process revalidation is incomplete, stale or namespace-mismatched')
-            confirmed_tasks = {task['pid']: task for task in confirmation['tasks']}
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            for task, index in pending:
-                findings[index] = result('processes', task['pid'], 'ERROR', 'revalidation_unavailable', str(exc))
-        else:
-            for task, index in pending:
-                confirmed = confirmed_tasks.get(task['pid'])
-                if confirmed is None:
-                    findings[index]['detail'] += ' The later kernel snapshot also lacks this task; exit remains inconclusive.'
-                elif confirmed['start_ns'] != task['start_ns']:
-                    findings[index] = result('processes', task['pid'], 'INFO', 'identity_changed',
-                                             'Later kernel snapshot has a different birth time; PID reuse prevents attribution.')
-                else:
-                    finding = result('processes', task['pid'], 'SUSPICIOUS', 'missing_from_proc_enumeration',
-                                     'Both proc enumerations omit this PID and direct lookup is unavailable, but a later kernel '
-                                     'snapshot retains the same PID, namespace and nanosecond birth identity. '
-                                     'This is corroborated same-kernel evidence, not independent attestation.')
-                    finding.update(identity_source='kernel_task_revalidation',
-                                   revalidation={'started_ns': confirmation['started_ns'],
-                                                 'finished_ns': confirmation['finished_ns'],
-                                                 'pid_ns': confirmation['pid_ns'], 'start_ns': confirmed['start_ns']})
-                    findings[index] = finding
+        findings = _revalidate_findings(pending, findings, report, revalidate)
     if not compared:
         findings.append(result('processes', 'cross-view', 'OK', 'enumeration_consistent',
                                 'Every kernel-snapshot leader appeared in at least one bracketing proc enumeration. Task-list DKOM is not covered.'))

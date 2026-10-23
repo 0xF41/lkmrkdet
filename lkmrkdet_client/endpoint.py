@@ -9,7 +9,7 @@ from . import trace_evidence
 from .process_compare import (enumerate_pids, namespace_id, parse_stat_start,
                               process_findings)
 from .reporting import (CHECKS, CLIENT_VERSION, REPORT_LIMIT, add_records,
-                        checks_argument, result, validate_report)
+                        parse_checks, result, validate_report)
 
 
 def read_report(fd):
@@ -29,7 +29,7 @@ def read_report(fd):
 def _expected_mask(command):
     if not command.startswith('scan '):
         return 0
-    names = checks_argument(command[5:])
+    names = parse_checks(command[5:])
     return (sum(CHECKS.values()) if names == 'all'
             else sum(CHECKS[n] for n in names.split(',')))
 

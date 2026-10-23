@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-only
 """Report schema, record helpers, and exit-status semantics."""
-import argparse
-
 CLIENT_VERSION = '0.3.1'
 SUPPORTED_SCHEMA = 1
 
@@ -12,40 +10,48 @@ SAVED_REPORT_LIMIT = 8 * 1024 * 1024  # client indentation and PID evidence add 
 MAX_RECORDS = 512
 
 
-def checks_argument(value):
+def parse_checks(value):
+    """Validate a check list without depending on the CLI framework."""
     if value == 'all':
         return value
     names = value.split(',')
     if not names or len(set(names)) != len(names) or any(n not in CHECKS for n in names):
-        raise argparse.ArgumentTypeError('Use all or distinct names: ' + ','.join(CHECKS))
+        raise ValueError('Use all or distinct names: ' + ','.join(CHECKS))
     return value
+
+
+def _require_fields(obj, names, predicate, prefix):
+    for name in names:
+        if not predicate(obj.get(name)):
+            raise ValueError(f'{prefix} {name}')
+
+
+def _optional_fields(obj, names, predicate, prefix):
+    for name in names:
+        if name in obj and not predicate(obj[name]):
+            raise ValueError(f'{prefix} {name}')
 
 
 def validate_report(report):
     if not isinstance(report, dict) or report.get('schema') != SUPPORTED_SCHEMA:
         raise ValueError(f'Unsupported report schema; client supports {SUPPORTED_SCHEMA}')
-    for name in ['scanned', 'truncated', 'tasks_complete']:
-        if type(report.get(name)) is not bool:
-            raise ValueError(f'Missing boolean field {name}')
-    for name in ['pid_comparison_complete', 'ftrace_complete']:
-        if name in report and type(report[name]) is not bool:
-            raise ValueError(f'Invalid boolean field {name}')
-    for name in ['checks', 'pid_ns', 'net_ns', 'resolver_error', 'module_count',
-                 'started_ns', 'finished_ns']:
-        if type(report.get(name)) is not int:
-            raise ValueError(f'Missing integer field {name}')
-    for name in ['kernel', 'arch', 'version']:
-        if not isinstance(report.get(name), str):
-            raise ValueError(f'Missing string field {name}')
+    _require_fields(report, ['scanned', 'truncated', 'tasks_complete'],
+                    lambda value: type(value) is bool, 'Missing boolean field')
+    _optional_fields(report, ['pid_comparison_complete', 'ftrace_complete'],
+                     lambda value: type(value) is bool, 'Invalid boolean field')
+    _require_fields(report, ['checks', 'pid_ns', 'net_ns', 'resolver_error', 'module_count',
+                             'started_ns', 'finished_ns'],
+                    lambda value: type(value) is int, 'Missing integer field')
+    _require_fields(report, ['kernel', 'arch', 'version'],
+                    lambda value: isinstance(value, str), 'Missing string field')
     records = report.get('records')
     if not isinstance(records, list) or len(records) > MAX_RECORDS:
         raise ValueError('Invalid record list')
     for record in records:
         if not isinstance(record, dict) or record.get('status') not in STATUSES:
             raise ValueError('Invalid record status')
-        for name in ['check', 'target', 'code', 'detail']:
-            if not isinstance(record.get(name), str):
-                raise ValueError(f'Invalid record field {name}')
+        _require_fields(record, ['check', 'target', 'code', 'detail'],
+                        lambda value: isinstance(value, str), 'Invalid record field')
     tasks = report.get('tasks')
     if not isinstance(tasks, list) or len(tasks) > 8192:
         raise ValueError('Invalid task snapshot')
