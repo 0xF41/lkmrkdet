@@ -6,7 +6,7 @@ import os
 import sys
 import textwrap
 
-from reporting import CHECKS, exit_status
+from .reporting import CHECKS, exit_status
 
 COLORS = {'heading': '\x1b[1;36m', 'good': '\x1b[32m', 'suspicious': '\x1b[1;91m',
           'warning': '\x1b[33m', 'info': '\x1b[34m', 'dim': '\x1b[2m', 'bold': '\x1b[1m'}

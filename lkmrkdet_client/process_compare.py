@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import re
 
-from reporting import CHECKS, result, validate_report
+from .reporting import CHECKS, result, validate_report
 
 
 def enumerate_pids(proc=Path('/proc')):

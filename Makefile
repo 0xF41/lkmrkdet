@@ -20,6 +20,7 @@ module:
 
 # Local lab only: tests/ and lab scripts are intentionally not published.
 test-lab:
+	@test -d tests || { echo "test-lab requires the local lab checkout (tests/)" >&2; exit 2; }
 	$(HOSTCC) -std=c11 -Wall -Wextra -Werror -pedantic -I. -Iinclude tests/test_entry_decode.c -o test_entry_decode
 	./test_entry_decode
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py' -v

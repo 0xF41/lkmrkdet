@@ -5,10 +5,10 @@ import os
 from pathlib import Path
 import time
 
-import trace_evidence
-from process_compare import enumerate_pids, namespace_id, parse_stat_start, process_findings
-from reporting import (CHECKS, CLIENT_VERSION, MAX_RECORDS, REPORT_LIMIT, add_records,
-                       checks_argument, result, validate_report)
+from . import trace_evidence
+from .process_compare import enumerate_pids, namespace_id, parse_stat_start, process_findings
+from .reporting import (CHECKS, CLIENT_VERSION, REPORT_LIMIT, add_records,
+                        checks_argument, result, validate_report)
 
 
 def read_report(fd):
