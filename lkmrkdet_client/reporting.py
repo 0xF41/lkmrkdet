@@ -8,6 +8,9 @@ STATUSES = {'OK', 'SUSPICIOUS', 'UNSUPPORTED', 'ERROR', 'INFO'}
 REPORT_LIMIT = 2 * 1024 * 1024
 SAVED_REPORT_LIMIT = 8 * 1024 * 1024  # client indentation and PID evidence add size
 MAX_RECORDS = 512
+MAX_REPORT_STRING = 128
+MAX_TASK_COMM = 64
+MAX_RECORD_FIELD = {'check': 64, 'target': 512, 'code': 64, 'detail': 4096}
 
 
 def parse_checks(value):
@@ -44,6 +47,9 @@ def validate_report(report):
                     lambda value: type(value) is int, 'Missing integer field')
     _require_fields(report, ['kernel', 'arch', 'version'],
                     lambda value: isinstance(value, str), 'Missing string field')
+    for name in ['kernel', 'arch', 'version']:
+        if len(report[name]) > MAX_REPORT_STRING:
+            raise ValueError(f'Invalid string field {name} length')
     records = report.get('records')
     if not isinstance(records, list) or len(records) > MAX_RECORDS:
         raise ValueError('Invalid record list')
@@ -52,6 +58,9 @@ def validate_report(report):
             raise ValueError('Invalid record status')
         _require_fields(record, ['check', 'target', 'code', 'detail'],
                         lambda value: isinstance(value, str), 'Invalid record field')
+        for name, limit in MAX_RECORD_FIELD.items():
+            if len(record[name]) > limit:
+                raise ValueError(f'Invalid record field {name} length')
     tasks = report.get('tasks')
     if not isinstance(tasks, list) or len(tasks) > 8192:
         raise ValueError('Invalid task snapshot')
@@ -66,6 +75,8 @@ def validate_report(report):
             raise ValueError('Invalid task start time')
         if not isinstance(task.get('comm'), str):
             raise ValueError('Invalid task name')
+        if len(task['comm']) > MAX_TASK_COMM:
+            raise ValueError('Invalid task name length')
     if report['checks'] & ~sum(CHECKS.values()):
         raise ValueError('Unknown check-mask bits')
     return report

@@ -16,6 +16,12 @@ static int rk_owner(struct rk_session *s, unsigned long address)
 	return -1;
 }
 
+static void rk_note_length(struct rk_session *s, long written, size_t size)
+{
+	if (written < 0 || (unsigned long)written >= size)
+		s->truncated = true;
+}
+
 void rk_describe(struct rk_session *s, struct rk_record *r,
 		unsigned long address)
 {
@@ -23,15 +29,20 @@ void rk_describe(struct rk_session *s, struct rk_record *r,
 	if (!r)
 		return;
 	r->address = address;
-	snprintf(r->symbol, sizeof(r->symbol), "%ps", (void *)address);
+	rk_note_length(s, snprintf(r->symbol, sizeof(r->symbol), "%ps", (void *)address),
+		       sizeof(r->symbol));
 	owner = rk_owner(s, address);
 	if (rk_core_text(address))
-		strscpy(r->owner, "vmlinux", sizeof(r->owner));
+		rk_note_length(s, strscpy(r->owner, "vmlinux", sizeof(r->owner)),
+			       sizeof(r->owner));
 	else if (owner >= 0)
-		snprintf(r->owner, sizeof(r->owner), "%s%s", s->modules[owner].name,
-			 s->modules[owner].listed ? "" : " (unlisted)");
+		rk_note_length(s, snprintf(r->owner, sizeof(r->owner), "%s%s",
+					   s->modules[owner].name,
+					   s->modules[owner].listed ? "" : " (unlisted)"),
+			       sizeof(r->owner));
 	else
-		strscpy(r->owner, "unresolved", sizeof(r->owner));
+		rk_note_length(s, strscpy(r->owner, "unresolved", sizeof(r->owner)),
+			       sizeof(r->owner));
 }
 
 

@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 
 from .endpoint import request
+from .fileio import read_regular_file
 from .render import color_enabled, display, styled
 from .reporting import (CLIENT_VERSION, SAVED_REPORT_LIMIT, exit_status,
                         parse_checks, validate_report)
@@ -37,9 +38,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == 'show':
-            if args.report.stat().st_size > SAVED_REPORT_LIMIT:
-                raise ValueError('Report exceeds bounded size')
-            report = validate_report(json.loads(args.report.read_text()))
+            report = validate_report(json.loads(
+                read_regular_file(args.report, SAVED_REPORT_LIMIT)))
         else:
             if os.geteuid() != 0:
                 raise PermissionError('Use sudo to access the root-restricted detector interface.')
@@ -51,7 +51,7 @@ def main(argv=None):
         else:
             display(report, args.verbose, color=args.color, saved=args.command == 'show')
         return exit_status(report)
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, RecursionError) as exc:
         enabled = args.format != 'json' and color_enabled(args.color, stream=sys.stderr)
         print(styled(f'lkmrkdet: inspection failed: {exc}', 'warning', enabled), file=sys.stderr)
         return 2

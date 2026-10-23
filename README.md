@@ -35,8 +35,12 @@ published checkout.
 
 ```bash
 sudo insmod ./lkmrkdet.ko
-sudo python3 client.py scan
+sudo python3 -I client.py scan
 ```
+
+`-I` runs Python in isolated mode, ignoring `PYTHONPATH` and user site-packages.
+The client adds its own package directory explicitly, so the command remains
+self-contained.
 
 The default scan checks kernel modules, hidden processes, filesystem and network
 reporting, system-call handlers, and tracing hooks.
@@ -167,13 +171,13 @@ independent rootkits.
 Check the loaded detector:
 
 ```bash
-sudo python3 client.py status
+sudo python3 -I client.py status
 ```
 
 Show all scan details:
 
 ```bash
-sudo python3 client.py scan --verbose
+sudo python3 -I client.py scan --verbose
 ```
 
 Colour is automatic for terminals and disabled for redirected output. Use
@@ -182,21 +186,21 @@ respects `NO_COLOR` and `TERM=dumb`; an explicit choice overrides them. JSON out
 always stays plain.
 
 ```bash
-sudo python3 client.py scan --color never
+sudo python3 -I client.py scan --color never
 ```
 
 Check only processes:
 
 ```bash
-sudo python3 client.py scan --checks processes
+sudo python3 -I client.py scan --checks processes
 ```
 
 Save and view a report:
 
 ```bash
 umask 077
-sudo python3 client.py scan --format json > scan.json
-python3 client.py show scan.json
+sudo python3 -I client.py scan --format json > scan.json
+python3 -I client.py show scan.json
 ```
 
 Reports contain kernel addresses. Keep them private. Viewing a saved report does
