@@ -14,10 +14,25 @@
 #include <net/net_namespace.h>
 #include "lkmrkdet.h"
 
+struct rk_check {
+	const char *name;
+	unsigned int bit;
+	void (*scan)(struct rk_session *);
+};
+
+static const struct rk_check rk_checks[] = {
+	{ "modules", RK_MODULES, rk_scan_modules },
+	{ "filesystem", RK_FILESYSTEM, rk_scan_filesystem },
+	{ "network", RK_NETWORK, rk_scan_network },
+	{ "syscalls", RK_SYSCALLS, rk_scan_syscalls },
+	{ "processes", RK_PROCESSES, rk_scan_processes },
+	{ "ftrace", RK_FTRACE, rk_scan_ftrace },
+};
+
 static int rk_parse_command(char *command, unsigned int *checks)
 {
 	char *token, *list;
-	unsigned int mask = 0, flag;
+	unsigned int mask = 0, flag, i;
 	command = strim(command);
 	if (!strcmp(command, "status")) {
 		*checks = 0;
@@ -31,13 +46,12 @@ static int rk_parse_command(char *command, unsigned int *checks)
 		return 0;
 	}
 	while ((token = strsep(&list, ","))) {
-		if (!strcmp(token, "modules")) flag = RK_MODULES;
-		else if (!strcmp(token, "filesystem")) flag = RK_FILESYSTEM;
-		else if (!strcmp(token, "network")) flag = RK_NETWORK;
-		else if (!strcmp(token, "syscalls")) flag = RK_SYSCALLS;
-		else if (!strcmp(token, "processes")) flag = RK_PROCESSES;
-		else if (!strcmp(token, "ftrace")) flag = RK_FTRACE;
-		else return -EINVAL;
+		for (i = 0; i < ARRAY_SIZE(rk_checks); i++)
+			if (!strcmp(token, rk_checks[i].name))
+				break;
+		if (i == ARRAY_SIZE(rk_checks))
+			return -EINVAL;
+		flag = rk_checks[i].bit;
 		if (mask & flag)
 			return -EINVAL;
 		mask |= flag;
@@ -57,7 +71,8 @@ static ssize_t rk_write(struct file *file, const char __user *buf,
 	struct rk_session *s = file->private_data;
 	char *command;
 	unsigned int checks;
-	int ret, registry_ret;
+	int ret;
+	unsigned int i;
 	if (!rk_authorized())
 		return -EPERM;
 	if (!count || count >= RK_MAX_COMMAND)
@@ -83,13 +98,10 @@ static ssize_t rk_write(struct file *file, const char __user *buf,
 	s->nr_records = 0;
 	s->started_ns = ktime_get_boottime_ns();
 	if (checks) {
-		registry_ret = rk_registry(s);
-		if (checks & RK_MODULES) rk_scan_modules(s, registry_ret);
-		if (checks & RK_FILESYSTEM) rk_scan_filesystem(s);
-		if (checks & RK_NETWORK) rk_scan_network(s);
-		if (checks & RK_SYSCALLS) rk_scan_syscalls(s);
-		if (checks & RK_PROCESSES) rk_scan_processes(s);
-		if (checks & RK_FTRACE) rk_scan_ftrace(s);
+		s->registry_ret = rk_registry(s);
+		for (i = 0; i < ARRAY_SIZE(rk_checks); i++)
+			if (checks & rk_checks[i].bit)
+				rk_checks[i].scan(s);
 	} else {
 		rk_record(s, "status", "resolver",
 			rk_symbols_available() ? RK_INFO : RK_UNSUPPORTED,

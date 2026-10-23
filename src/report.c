@@ -5,7 +5,9 @@
 #include "lkmrkdet.h"
 
 static const char * const rk_status_names[] = {
-	"OK", "SUSPICIOUS", "UNSUPPORTED", "ERROR", "INFO"
+	[RK_OK] = "OK", [RK_SUSPICIOUS] = "SUSPICIOUS",
+	[RK_UNSUPPORTED] = "UNSUPPORTED", [RK_ERROR] = "ERROR",
+	[RK_INFO] = "INFO"
 };
 
 struct rk_record *rk_record(struct rk_session *s, const char *check,

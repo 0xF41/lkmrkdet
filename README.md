@@ -62,6 +62,16 @@ Tracing checks also flag selected active `IPMODIFY` registrations independently
 of entry-CALL correlation. These comparisons identify evidence for investigation;
 they do not establish whole-kernel integrity.
 
+## Project layout
+
+| Path | Purpose |
+| --- | --- |
+| `src/` | Kernel module entry, shared reporting, and one file per inspection feature |
+| `include/` | Internal kernel headers shared by the module and decoder test |
+| `lkmrkdet_client/` | Python report, comparison, transaction, and rendering modules |
+| `client.py` | Stable command-line entry point and compatibility facade |
+| `scripts/configure.py` | Kernel-header feature detection used by `make module` |
+
 ## Understand the results
 
 | Result | Meaning |

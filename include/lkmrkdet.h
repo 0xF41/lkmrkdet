@@ -51,7 +51,7 @@ struct rk_session {
 	unsigned long sampled_entries[64];
 	unsigned int nr_sampled_entries;
 	unsigned int net_ns, pid_ns;
-	int render_error;
+	int render_error, registry_ret;
 	bool scanned, truncated, registry_ready, tasks_complete;
 	u64 started_ns, finished_ns;
 };
@@ -73,7 +73,7 @@ void rk_inspect_pointer(struct rk_session *s, const char *check,
 	const char *target, unsigned long address, unsigned long expected, bool require_core);
 void rk_modules_resolve_symbols(void);
 int rk_registry(struct rk_session *s);
-void rk_scan_modules(struct rk_session *s, int registry_ret);
+void rk_scan_modules(struct rk_session *s);
 void rk_scan_filesystem(struct rk_session *s);
 void rk_scan_network(struct rk_session *s);
 void rk_scan_syscalls(struct rk_session *s);

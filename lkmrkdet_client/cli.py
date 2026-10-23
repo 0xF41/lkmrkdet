@@ -8,12 +8,14 @@ import sys
 
 from .endpoint import request
 from .render import color_enabled, display, styled
-from .reporting import (SAVED_REPORT_LIMIT, checks_argument, exit_status,
-                        validate_report)
+from .reporting import (CLIENT_VERSION, SAVED_REPORT_LIMIT, checks_argument,
+                        exit_status, validate_report)
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--version', action='version',
+                        version=f'lkmrkdet client {CLIENT_VERSION}')
     commands = parser.add_subparsers(dest='command', required=True)
     for name in ['status', 'scan', 'show']:
         p = commands.add_parser(name)

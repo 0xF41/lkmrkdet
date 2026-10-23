@@ -6,7 +6,8 @@ from pathlib import Path
 import time
 
 from . import trace_evidence
-from .process_compare import enumerate_pids, namespace_id, parse_stat_start, process_findings
+from .process_compare import (enumerate_pids, namespace_id, parse_stat_start,
+                              process_findings)
 from .reporting import (CHECKS, CLIENT_VERSION, REPORT_LIMIT, add_records,
                         checks_argument, result, validate_report)
 
@@ -25,47 +26,73 @@ def read_report(fd):
     return validate_report(json.loads(b''.join(chunks)))
 
 
-def request(command, endpoint=Path('/proc/lkmrkdet'), compare_processes=False):
-    expected_mask = 0
-    if command.startswith('scan '):
-        names = checks_argument(command[5:])
-        expected_mask = sum(CHECKS.values()) if names == 'all' else sum(CHECKS[n] for n in names.split(','))
-    tracing = trace_evidence.snapshot() if expected_mask & CHECKS['ftrace'] else None
-    before = enumerate_pids() if compare_processes else None
-    ns_before = namespace_id() if compare_processes else None
+def _expected_mask(command):
+    if not command.startswith('scan '):
+        return 0
+    names = checks_argument(command[5:])
+    return (sum(CHECKS.values()) if names == 'all'
+            else sum(CHECKS[n] for n in names.split(',')))
+
+
+def _transact(command, endpoint):
     fd = os.open(endpoint, os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW)
     try:
         payload = (command + '\n').encode('ascii')
         if os.write(fd, payload) != len(payload):
             raise OSError('Short write to detector interface')
         os.lseek(fd, 0, os.SEEK_SET)
-        report = read_report(fd)
+        return read_report(fd)
     finally:
         os.close(fd)
+
+
+def _check_acknowledgement(report, expected_mask):
     if report['checks'] != expected_mask or report['scanned'] != bool(expected_mask):
         raise ValueError('Detector did not acknowledge the requested checks')
+
+
+def _compare_processes(report, endpoint, before, ns_before):
+    after = enumerate_pids()
+    ns_after = namespace_id()
+    if report['pid_ns'] != ns_before or ns_after != ns_before:
+        report['pid_comparison_complete'] = False
+        add_records(report, [result('processes', 'cross-view', 'ERROR', 'namespace_mismatch',
+                                   'Kernel snapshot and proc namespace identity do not agree.')])
+        return
+
+    def read_start(pid):
+        return parse_stat_start(Path(f'/proc/{pid}/stat').read_text())
+
+    findings = process_findings(report, before, after, read_start,
+                                os.sysconf('SC_CLK_TCK'),
+                                revalidate=lambda: request('scan processes', endpoint))
+    add_records(report, findings)
+    report['pid_comparison_complete'] = report['tasks_complete']
+
+
+def _correlate_tracing(report, before_trace):
+    after_trace = trace_evidence.snapshot()
+    findings, complete = trace_evidence.assess(before_trace, after_trace)
+    report['ftrace'] = {'before': before_trace, 'after': after_trace}
+    report['ftrace_complete'] = complete
+    trace_evidence.correlate_entry_calls(report['records'], before_trace, after_trace)
+    add_records(report, findings)
+
+
+def request(command, endpoint=Path('/proc/lkmrkdet'), compare_processes=False):
+    expected_mask = _expected_mask(command)
+    tracing = trace_evidence.snapshot() if expected_mask & CHECKS['ftrace'] else None
+    # Capture the bracketing proc view and namespace before the kernel snapshot.
+    before = enumerate_pids() if compare_processes else None
+    ns_before = namespace_id() if compare_processes else None
+
+    report = _transact(command, endpoint)
+    _check_acknowledgement(report, expected_mask)
     report['collected_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     report['client_version'] = CLIENT_VERSION
+
     if compare_processes:
-        after = enumerate_pids()
-        ns_after = namespace_id()
-        if report['pid_ns'] != ns_before or ns_after != ns_before:
-            report['pid_comparison_complete'] = False
-            add_records(report, [result('processes', 'cross-view', 'ERROR', 'namespace_mismatch',
-                                       'Kernel snapshot and proc namespace identity do not agree.')])
-        else:
-            def read_start(pid):
-                return parse_stat_start(Path(f'/proc/{pid}/stat').read_text())
-            findings = process_findings(report, before, after, read_start,
-                                        os.sysconf('SC_CLK_TCK'),
-                                        revalidate=lambda: request('scan processes', endpoint))
-            add_records(report, findings)
-            report['pid_comparison_complete'] = report['tasks_complete']
+        _compare_processes(report, endpoint, before, ns_before)
     if tracing is not None:
-        after_trace = trace_evidence.snapshot()
-        findings, complete = trace_evidence.assess(tracing, after_trace)
-        report['ftrace'] = {'before': tracing, 'after': after_trace}
-        report['ftrace_complete'] = complete
-        trace_evidence.correlate_entry_calls(report['records'], tracing, after_trace)
-        add_records(report, findings)
+        _correlate_tracing(report, tracing)
     return report

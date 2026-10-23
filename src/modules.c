@@ -127,14 +127,15 @@ unlock:
 free_refs:
 	kfree(refs);
 	s->registry_ready = !ret;
+	s->registry_ret = ret;
 	return ret;
 }
 
-void rk_scan_modules(struct rk_session *s, int registry_ret)
+void rk_scan_modules(struct rk_session *s)
 {
 	unsigned int i, findings = 0;
-	if (registry_ret) {
-		rk_record(s, "modules", "registries", registry_ret == -EOPNOTSUPP ?
+	if (s->registry_ret) {
+		rk_record(s, "modules", "registries", s->registry_ret == -EOPNOTSUPP ?
 			RK_UNSUPPORTED : RK_ERROR, "registry_unavailable",
 			"Could not complete a module-list/kobject snapshot; no clean result is implied.");
 		return;

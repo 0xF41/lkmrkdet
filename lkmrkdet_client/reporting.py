@@ -3,6 +3,7 @@
 import argparse
 
 CLIENT_VERSION = '0.3.1'
+SUPPORTED_SCHEMA = 1
 
 CHECKS = {'modules': 1, 'filesystem': 2, 'network': 4, 'syscalls': 8, 'processes': 16, 'ftrace': 32}
 STATUSES = {'OK', 'SUSPICIOUS', 'UNSUPPORTED', 'ERROR', 'INFO'}
@@ -21,8 +22,8 @@ def checks_argument(value):
 
 
 def validate_report(report):
-    if not isinstance(report, dict) or report.get('schema') != 1:
-        raise ValueError('Unsupported or missing report schema')
+    if not isinstance(report, dict) or report.get('schema') != SUPPORTED_SCHEMA:
+        raise ValueError(f'Unsupported report schema; client supports {SUPPORTED_SCHEMA}')
     for name in ['scanned', 'truncated', 'tasks_complete']:
         if type(report.get(name)) is not bool:
             raise ValueError(f'Missing boolean field {name}')
