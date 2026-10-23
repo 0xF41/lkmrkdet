@@ -62,7 +62,10 @@ void rk_resolve_symbols(bool enabled);
 int rk_resolver_error(void);
 bool rk_symbols_available(void);
 unsigned long rk_symbol(const char *name);
+bool rk_core_text(unsigned long address);
+bool rk_text_ready(void);
 int rk_read(void *dst, const void *src, size_t length);
+int rk_render(struct rk_session *s);
 struct rk_record *rk_record(struct rk_session *s, const char *check,
 	const char *target, enum rk_status status, const char *code, const char *detail);
 void rk_describe(struct rk_session *s, struct rk_record *r, unsigned long address);
