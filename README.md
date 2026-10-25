@@ -14,6 +14,7 @@ investigation; a scan with no findings does not guarantee a clean system.
 
 - [Watch When Linux Lies — STANDCON 2026](https://www.youtube.com/watch?v=iVvg8e03F6Y)
 - [Slides (PDF)](docs/STANDCON-When-Linux-Lies.pdf)
+- [Technical wiki](docs/TECHNICAL_WIKI.md)
 
 ## Quick start
 
